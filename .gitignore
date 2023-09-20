@@ -1,0 +1,8 @@
+.vscode/
+
+# compiled files
+*.o
+*.out
+
+# Executable output from Makefile
+ls
