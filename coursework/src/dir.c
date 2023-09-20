@@ -24,6 +24,10 @@ void traverse_dir(char *dir_name, const char *parent_dir, const int *opts)
   print_file(dp, dir_name, parent_dir, opts);
 
   // 순회 하는 부분
+  if ((*opts && R_OPT) == 0)
+  {
+    return;
+  }
   rewinddir(dp);
   while (p = readdir(dp))
   {

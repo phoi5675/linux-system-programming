@@ -17,6 +17,8 @@ void print_file(DIR *dp, char *d_name, const char *parent_dir, const int *opts)
   printf("%s%s:\n", p_dir, d_name);
   while (p = readdir(dp))
   {
+    // TODO: 이 부분에서 파일 읽은 후 관련 정보 queue에 저장하는 부분 추가
+    // TODO: 이 부분에서 출력 옵션에 따라 출력 바뀌게 하는 부분 추가
     printf("%s\t", p->d_name);
   }
   printf("\n\n");
