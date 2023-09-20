@@ -16,10 +16,13 @@ void traverse_dir(char *dir_name, const char *parent_dir, const int *opts)
   struct dirent *p;
   struct stat buf;
 
-  chdir(dir_name);
+  lstat(dir_name, &buf);
+  if (S_ISDIR(buf.st_mode))
+  {
+    chdir(dir_name);
+  }
   dp = opendir(".");
 
-  // printf("parent_dir : %s\n", parent_dir);
   // 출력 하는 부분
   print_file(dp, dir_name, parent_dir, opts);
 
