@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -I../include -c
 TARGET = ls
-OBJS = main.o opts.o common.o file_util.o queue.o
+OBJS = main.o dir.o common.o opts.o print.o
 
 $(TARGET) : $(OBJS) 
 	$(CC) $(OBJS) -o $(TARGET) 

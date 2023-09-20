@@ -1,9 +1,8 @@
 #include <stdio.h>
 
 #include <opts.h>
-#include <file_util.h>
 #include <common.h>
-#include <queue.h>
+#include <dir.h>
 
 /*
  * 옵션 설명
@@ -31,9 +30,6 @@
 int main(int argc, char **argv)
 {
   int opts = get_opt_flags(argc, argv);
-  file_queue queue;
-
-  init_queue(&queue);
 
   /*
    * ls 실행 시 폴더 또는 argv의 폴더/파일에 대해 enqueue
@@ -41,7 +37,7 @@ int main(int argc, char **argv)
   // args 없는 경우, 현재 디렉토리 사용
   if (argc == 1 || (argc == 2 && opts == NO_OPT))
   {
-    enqueue(&queue, ".");
+    traverse_dir(".", &opts);
   }
   else
   {
@@ -52,7 +48,7 @@ int main(int argc, char **argv)
       {
         continue;
       }
-      enqueue(&queue, argv[i]);
+      traverse_dir(argv[i], &opts);
     }
   }
 
