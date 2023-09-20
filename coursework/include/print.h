@@ -3,6 +3,6 @@
 
 #include <dirent.h>
 
-void print_file(DIR *, char *, const int *);
+void print_file(DIR *, char *, const char *, const int *);
 
 #endif

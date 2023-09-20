@@ -35,9 +35,9 @@ int main(int argc, char **argv)
    * ls 실행 시 폴더 또는 argv의 폴더/파일에 대해 enqueue
    */
   // args 없는 경우, 현재 디렉토리 사용
-  if (argc == 1 || (argc == 2 && opts == NO_OPT))
+  if (argc == 1 || (argc == 2 && opts != NO_OPT))
   {
-    traverse_dir(".", &opts);
+    traverse_dir(".", "", &opts);
   }
   else
   {
@@ -48,7 +48,9 @@ int main(int argc, char **argv)
       {
         continue;
       }
-      traverse_dir(argv[i], &opts);
+      // '/'가 파일 맨 끝에 있는 경우, 파일 형식 출력 시 "//" 로 출력되므로 제거
+      remove_slash_end_of_string(argv[i]);
+      traverse_dir(argv[i], "", &opts);
     }
   }
 
