@@ -1,13 +1,17 @@
 #include <stdio.h>
+#include <string.h>
 
 #include <opts.h>
 #include <common.h>
 #include <dir.h>
+#include <queue.h>
 
 int main(int argc, char **argv)
 {
   int opts = get_opt_flags(argc, argv);
+  queue q;
 
+  init_queue(&q);
   // args 없는 경우, 현재 디렉토리 사용
   if (argc == 1 || (argc == 2 && opts != NO_OPT))
   {
@@ -24,10 +28,21 @@ int main(int argc, char **argv)
       }
       // '/'가 파일 맨 끝에 있는 경우, 파일 형식 출력 시 "//" 로 출력되므로 제거
       remove_slash_end_of_string(argv[i]);
-      // TODO: 여기에서 queue에 담고, 정렬 한 이후에 traverse_dir 함수 호출하도록 변경
-      traverse_dir(argv[i], "", &opts);
+
+      enqueue(&q, strdup(argv[i]));
+    }
+
+    // 인자가 여러 개 있는 경우, 정렬해서 탐색
+    sort_queue(&q);
+    // TODO: -R 옵션이 아닌 경우, 각 node 모아서 따로 탐색 돌리는 로직 추가
+    while (!is_empty(&q))
+    {
+      node n = dequeue(&q);
+
+      traverse_dir(n.dir_name, "", &opts);
     }
   }
+  printf("\n\n%d\n\n", opts);
 
   return 0;
 }

@@ -4,14 +4,27 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <pwd.h>
+#include <grp.h>
+#include <time.h>
 
 #include <print.h>
 #include <opts.h>
+#include <queue.h>
+#include <common.h>
 
+// TODO: inode가 모두 같은 값으로 나오는 문제 존재
+// TODO: 파일 실행 권한이 모두 같게 나오는 문제 재 존재
+// TODO: -a 옵션 주는 경우 구현(. 파일 숨기기)
 void print_file(DIR *dp, char *d_name, const char *parent_dir, const int *opts)
 {
+  queue q;
   struct stat buf;
   struct dirent *p;
+  l_prettier *lp = (l_prettier *)calloc(1, sizeof(l_prettier));
+
+  init_queue(&q);
+  // -R 옵션 사용 시, 상위 폴더 경로 출력 용도로 concat
   char *p_dir = (char *)malloc((size_t)(strlen(parent_dir) + 2));
   strcpy(p_dir, parent_dir);
   if (strcmp(p_dir, "") != 0)
@@ -22,21 +35,275 @@ void print_file(DIR *dp, char *d_name, const char *parent_dir, const int *opts)
   lstat(d_name, &buf);
   if (S_ISDIR(buf.st_mode))
   {
-    if (*opts * R_OPT)
+    if (*opts & R_OPT)
     {
       printf("%s%s:\n", p_dir, d_name);
     }
     while (p = readdir(dp))
     {
-      // TODO: 이 부분에서 파일 읽은 후 관련 정보 queue에 저장하는 부분 추가
-      // TODO: 이 부분에서 출력 옵션에 따라 출력 바뀌게 하는 부분 추가
-      printf("%s\t", p->d_name);
+      node n;
+      strcpy(n.dir_name, p->d_name);
+      lstat(n.dir_name, &n.buf);
+      enqueue_node(&q, &n);
     }
-    printf("\n");
+
+    sort_queue(&q);
+
+    // 1. l opts 인 경우, alignment 하는 옵션
+    set_l_prettier(&q, lp);
+    while (!is_empty(&q))
+    {
+      node n = dequeue(&q);
+
+      print_inode(n.buf.st_ino, lp->st_ino, *opts);
+      print_perm(&n.buf, *opts);
+      print_nlink(&n.buf, lp->nlink, *opts);
+      print_pwd(&n.buf, lp->pw_name, *opts);
+      print_grp(&n.buf, lp->gr_name, *opts);
+      print_size(&n.buf, lp, *opts);
+      print_name(&n, *opts);
+    }
+  }
+  // 디렉토리가 아닌 단순 파일인 경우
+  // TODO: -R 옵션 주지 않는 경우에 해당 부분 사용하지 않는 것 확인되면 제거
+  // else
+  // {
+  //   if (*opts & l_OPT)
+  //   {
+  //     printf("%s\t", d_name);
+  //   }
+  //   else
+  //   {
+  //     printf("%s\t", d_name);
+  //   }
+  // }
+}
+
+void set_l_prettier(queue *q, l_prettier *lp)
+{
+  node *n;
+  struct passwd *pwd;
+  struct group *grp;
+
+  if (is_empty(q))
+  {
+    return;
+  }
+
+  while (n != NULL)
+  {
+    int st_size;
+    int st_major = 0;
+    int st_minor = 0;
+
+    pwd = getpwuid(n->buf.st_uid);
+    grp = getgrgid(n->buf.st_gid);
+
+    if (S_ISCHR(n->buf.st_mode) || S_ISBLK(n->buf.st_mode))
+    {
+      // major, minor 숫자 자리수 + ", "(쉼표, 띄어쓰기) 자리수 추가
+      st_major = get_int_digit((n->buf.st_rdev >> 8) & 0xff);
+      st_minor = get_int_digit((n->buf.st_rdev) & 0xff);
+      st_size = st_major + st_minor + 2;
+    }
+    else
+    {
+      st_size = get_int_digit(n->buf.st_size);
+    }
+
+    lp->st_ino = MAX(lp->st_ino, get_int_digit(n->buf.st_ino));
+    lp->nlink = MAX(lp->nlink, get_int_digit(n->buf.st_nlink));
+    lp->pw_name = MAX(lp->pw_name, strlen(pwd->pw_name));
+    lp->gr_name = MAX(lp->pw_name, strlen(grp->gr_name));
+    lp->st_major = MAX(lp->st_major, st_major);
+    lp->st_minor = MAX(lp->st_minor, st_minor);
+    lp->st_size = MAX(lp->st_size, st_size);
+  }
+}
+
+void print_inode(unsigned long inode, int width, int opts)
+{
+  if ((opts & i_OPT) == 0)
+  {
+    return;
+  }
+
+  printf("%-*lu ", width, inode);
+}
+
+void print_perm(struct stat *buf, int opts)
+{
+  int i;
+  char perm[] = "----------";
+  char rwx[] = "rwx";
+  char sst[] = "sst";
+
+  if ((opts & l_OPT) == 0)
+  {
+    return;
+  }
+
+  if (S_ISDIR(buf->st_mode))
+    perm[0] = 'd';
+  else if (S_ISCHR(buf->st_mode))
+    perm[0] = 'c';
+  else if (S_ISBLK(buf->st_mode))
+    perm[0] = 'b';
+  else if (S_ISFIFO(buf->st_mode))
+    perm[0] = 'p';
+  else if (S_ISLNK(buf->st_mode))
+    perm[0] = 'l';
+  else if (S_ISSOCK(buf->st_mode))
+    perm[0] = 's';
+
+  for (i = 0; i < 9; i++)
+  {
+    if ((buf->st_mode >> (8 - i)) & 0x1)
+    {
+      perm[1 + i] = rwx[i % 3];
+    }
+  }
+  for (i = 0; i < 3; i++)
+  {
+    if ((buf->st_mode >> (11 - i)) & 0x1)
+    {
+      if (perm[(i + 1) * 3] == '-')
+        perm[(i + 1) * 3] = sst[i] - ('a' - 'A');
+      else
+        perm[(i + 1) * 3] = sst[i];
+    }
+  }
+  printf("%s ", perm);
+}
+
+void print_nlink(struct stat *buf, int width, int opts)
+{
+  if ((opts & l_OPT) == 0)
+  {
+    return;
+  }
+  printf("%-*lu ", width, buf->st_nlink);
+}
+
+void print_pwd(struct stat *buf, int width, int opts)
+{
+  if ((opts & l_OPT) == 0)
+  {
+    return;
+  }
+  struct passwd *pwd = getpwuid(buf->st_uid);
+
+  printf("%*s ", width, pwd->pw_name);
+}
+
+void print_grp(struct stat *buf, int width, int opts)
+{
+  if ((opts & l_OPT) == 0)
+  {
+    return;
+  }
+  struct group *grp = getgrgid(buf->st_gid);
+
+  printf("%*s ", width, grp->gr_name);
+}
+
+void print_size(struct stat *buf, l_prettier *lp, int opts)
+{
+  if ((opts & l_OPT) == 0)
+  {
+    return;
+  }
+  if (S_ISCHR(buf->st_mode) || S_ISBLK(buf->st_mode))
+  {
+    printf("%-*lu, %-*lu ",
+           lp->st_major, (buf->st_rdev >> 8) & 0xff,
+           lp->st_minor, (buf->st_rdev & 0xff));
   }
   else
   {
-    // TODO: 옵션별로 print 하는 방법 추가
-    printf("%s\t", d_name);
+    printf("%-*lu ", lp->st_size, buf->st_size);
+  }
+}
+
+void print_time(struct stat *buf, l_prettier *lp, int opts)
+{
+  if (opts & l_OPT == 0)
+  {
+    return;
+  }
+  struct tm *tmp = localtime(&buf->st_mtime);
+  char *mon;
+
+  switch (tmp->tm_mon)
+  {
+  case 0:
+    mon = "Jan";
+    break;
+  case 1:
+    mon = "Feb";
+    break;
+  case 2:
+    mon = "Mar";
+    break;
+  case 3:
+    mon = "Apr";
+    break;
+  case 4:
+    mon = "May";
+    break;
+  case 5:
+    mon = "Jun";
+    break;
+  case 6:
+    mon = "Jul";
+    break;
+  case 7:
+    mon = "Aug";
+    break;
+  case 8:
+    mon = "Sep";
+    break;
+  case 9:
+    mon = "Oct";
+    break;
+  case 10:
+    mon = "Nov";
+    break;
+  case 11:
+    mon = "Dec";
+    break;
+  default:
+    mon = "";
+  }
+  printf("%s %2d %02d:%02d ", mon, tmp->tm_mday, tmp->tm_hour, tmp->tm_min);
+}
+
+void print_name(node *n, int opts)
+{
+  if ((opts & l_OPT) != 0)
+  {
+    if (S_ISLNK(n->buf.st_mode))
+    {
+      char buff[256];
+      int ret;
+      ret = readlink(n->dir_name, buff, sizeof buff);
+      buff[ret] = 0;
+      printf("%s -> %s\n", n->dir_name, buff);
+    }
+    else
+    {
+      printf("%s\n", n->dir_name);
+    }
+  }
+  else
+  {
+    if (opts & R_OPT)
+    {
+      printf("%s\n", n->dir_name);
+    }
+    else
+    {
+      printf("%s\t", n->dir_name);
+    }
   }
 }

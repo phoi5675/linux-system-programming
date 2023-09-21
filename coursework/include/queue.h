@@ -1,5 +1,30 @@
 #ifndef __QUEUE_H__
-#define  __QUEUE_H__
+#define __QUEUE_H__
 
-// TODO: 이 부분에 파일 출력 시 사용되는 queue 관련 내용 추가
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+typedef struct node
+{
+  char dir_name[256];
+  struct node *next;
+  struct stat buf;
+} node;
+
+typedef struct queue
+{
+  int count;
+  node *front;
+  node *rear;
+} queue;
+
+void init_queue(queue *);
+int is_empty(queue *);
+void enqueue(queue *, char *);
+void enqueue_node(queue *, node *);
+node dequeue(queue *);
+void copy_node(node *, node *);
+void sort_queue(queue *);
+void print_queue(queue *);
 #endif
