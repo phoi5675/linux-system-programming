@@ -24,7 +24,7 @@ void print_file(DIR *dp, char *d_name, const char *parent_dir, const int *opts)
   // -R 옵션 사용 시, 상위 폴더 경로 출력 용도로 concat
   char *p_dir = (char *)malloc((size_t)(strlen(parent_dir) + 2));
   strcpy(p_dir, parent_dir);
-  if (strcmp(p_dir, "") != 0)
+  if (strcmp(p_dir, "") != 0 && (p_dir[strlen(p_dir) - 1] != '/'))
   {
     strcat(p_dir, "/");
   }

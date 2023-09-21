@@ -27,8 +27,6 @@ int main(int argc, char **argv)
       {
         continue;
       }
-      // '/'가 파일 맨 끝에 있는 경우, 파일 형식 출력 시 "//" 로 출력되므로 제거
-      remove_slash_end_of_string(argv[i]);
 
       enqueue(&q, strdup(argv[i]));
     }
