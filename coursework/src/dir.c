@@ -9,25 +9,31 @@
 #include <dir.h>
 #include <opts.h>
 #include <print.h>
+#include <queue.h>
 
 void traverse_dir(char *dir_name, const char *parent_dir, const int *opts)
 {
   DIR *dp;
   struct dirent *p;
   struct stat buf;
+  queue *q;
 
+  // 순회 하는 부분
   lstat(dir_name, &buf);
   if (S_ISDIR(buf.st_mode))
   {
     chdir(dir_name);
   }
+
   dp = opendir(".");
 
+  q = get_folder_elem_queue(dp, dir_name);
   // 출력 하는 부분
-  print_file(dp, dir_name, parent_dir, opts);
+  print_folder_header(dir_name, parent_dir, opts);
+  print_file(q, opts);
+  free(q);
 
-  // 순회 하는 부분
-  if ((*opts && R_OPT) == 0)
+  if ((*opts & R_OPT) == 0)
   {
     return;
   }
@@ -62,4 +68,27 @@ void traverse_dir(char *dir_name, const char *parent_dir, const int *opts)
 
   closedir(dp);
   chdir("..");
+}
+
+queue *get_folder_elem_queue(DIR *dp, char *d_name)
+{
+  queue *q = (queue *)malloc(sizeof(queue));
+  struct stat buf;
+  struct dirent *p;
+
+  init_queue(q);
+  lstat(d_name, &buf);
+
+  if (S_ISDIR(buf.st_mode))
+  {
+    while (p = readdir(dp))
+    {
+      node n;
+      strcpy(n.dir_name, p->d_name);
+      lstat(n.dir_name, &n.buf);
+      enqueue_node(q, &n);
+    }
+  }
+
+  return q;
 }

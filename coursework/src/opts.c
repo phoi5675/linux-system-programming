@@ -4,8 +4,7 @@
 int get_opt_flags(int argc, char **argv)
 {
   int ch;
-  int flags = 0;
-
+  int flags = NO_OPT;
 
   while ((ch = getopt(argc, argv, "alRi")) != -1)
   {
@@ -24,6 +23,11 @@ int get_opt_flags(int argc, char **argv)
       flags |= i_OPT;
       break;
     }
+  }
+
+  if ((flags == NO_OPT && argc == 3) || (flags != NO_OPT && argc > 3))
+  {
+    flags |= MUL_ARG_OPT;
   }
 
   return flags;

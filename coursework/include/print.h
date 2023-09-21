@@ -15,7 +15,8 @@ typedef struct l_prettier
   int st_size;
 } l_prettier;
 
-void print_file(DIR *, char *, const char *, const int *);
+void print_folder_header(char *, const char *, const int *);
+void print_file(queue *, const int *);
 void set_l_prettier(queue *, l_prettier *);
 unsigned long get_blk_size(queue *);
 

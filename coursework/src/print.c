@@ -13,14 +13,8 @@
 #include <queue.h>
 #include <common.h>
 
-void print_file(DIR *dp, char *d_name, const char *parent_dir, const int *opts)
+void print_folder_header(char *d_name, const char *parent_dir, const int *opts)
 {
-  queue q;
-  struct stat buf;
-  struct dirent *p;
-  l_prettier *lp = (l_prettier *)calloc(1, sizeof(l_prettier));
-
-  init_queue(&q);
   // -R 옵션 사용 시, 상위 폴더 경로 출력 용도로 concat
   char *p_dir = (char *)malloc((size_t)(strlen(parent_dir) + 2));
   strcpy(p_dir, parent_dir);
@@ -29,51 +23,47 @@ void print_file(DIR *dp, char *d_name, const char *parent_dir, const int *opts)
     strcat(p_dir, "/");
   }
 
-  lstat(d_name, &buf);
-  if (S_ISDIR(buf.st_mode))
+  if (*opts & R_OPT || *opts & MUL_ARG_OPT)
   {
-    if (*opts & R_OPT)
-    {
-      printf("%s%s:\n", p_dir, d_name);
-    }
-    while (p = readdir(dp))
-    {
-      node n;
-      strcpy(n.dir_name, p->d_name);
-      lstat(n.dir_name, &n.buf);
-      enqueue_node(&q, &n);
-    }
-
-    sort_queue(&q);
-
-    // 1. l opts 인 경우, alignment 하는 옵션
-    set_l_prettier(&q, lp);
-
-    if (*opts & l_OPT)
-    {
-      printf("total %lu\n", get_blk_size(&q));
-    }
-    while (!is_empty(&q))
-    {
-      node n = dequeue(&q);
-
-      // -a 옵션이 아닌 경우, . 파일 숨김 처리
-      if (((*opts & a_OPT) == 0) && (strncmp(n.dir_name, ".", 1) == 0))
-      {
-        continue;
-      }
-
-      // 1. l opts의 형식에 맞게 출력
-      print_inode(n.buf.st_ino, lp->st_ino, *opts);
-      print_perm(&n.buf, *opts);
-      print_nlink(&n.buf, lp->nlink, *opts);
-      print_pwd(&n.buf, lp->pw_name, *opts);
-      print_grp(&n.buf, lp->gr_name, *opts);
-      print_size(&n.buf, lp, *opts);
-      print_time(&n.buf, lp, *opts);
-      print_name(&n, *opts);
-    }
+    printf("%s%s:\n", p_dir, d_name);
   }
+  free(p_dir);
+}
+void print_file(queue *q, const int *opts)
+{
+  l_prettier *lp = (l_prettier *)calloc(1, sizeof(l_prettier));
+
+  sort_queue(q);
+
+  // 1. l opts 인 경우, alignment 하는 옵션
+  set_l_prettier(q, lp);
+
+  if (*opts & l_OPT)
+  {
+    printf("total %lu\n", get_blk_size(q));
+  }
+  while (!is_empty(q))
+  {
+    node n = dequeue(q);
+
+    // -a 옵션이 아닌 경우, . 파일 숨김 처리
+    if (((*opts & a_OPT) == 0) && (strncmp(n.dir_name, ".", 1) == 0))
+    {
+      continue;
+    }
+
+    // 1. l opts의 형식에 맞게 출력
+    print_inode(n.buf.st_ino, lp->st_ino, *opts);
+    print_perm(&n.buf, *opts);
+    print_nlink(&n.buf, lp->nlink, *opts);
+    print_pwd(&n.buf, lp->pw_name, *opts);
+    print_grp(&n.buf, lp->gr_name, *opts);
+    print_size(&n.buf, lp, *opts);
+    print_time(&n.buf, lp, *opts);
+    print_name(&n, *opts);
+  }
+
+  free(lp);
 }
 
 void set_l_prettier(queue *q, l_prettier *lp)

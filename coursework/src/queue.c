@@ -90,8 +90,9 @@ void copy_node(node *dst, node *src)
 
 int compare(const void *s1, const void *s2)
 {
-  return strcmp((char *)s1, (char *)s2);
+  return strcasecmp((char *)s1, (char *)s2);
 }
+
 void sort_queue(queue *q)
 {
   node *tmp_ary = (node *)malloc(sizeof(node) * q->count);

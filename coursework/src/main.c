@@ -1,18 +1,23 @@
 #include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include <opts.h>
 #include <common.h>
 #include <dir.h>
 #include <queue.h>
+#include <print.h>
 
-// TODO: 루트(/) 디렉토리 인식하지 못 하는 문제 수정
 int main(int argc, char **argv)
 {
+  struct stat buf;
   int opts = get_opt_flags(argc, argv);
-  queue q;
+  queue file_queue, folder_queue;
 
-  init_queue(&q);
+  init_queue(&file_queue);
+  init_queue(&folder_queue);
   // args 없는 경우, 현재 디렉토리 사용
   if (argc == 1 || (argc == 2 && opts != NO_OPT))
   {
@@ -28,18 +33,41 @@ int main(int argc, char **argv)
         continue;
       }
 
-      enqueue(&q, strdup(argv[i]));
+      lstat(argv[i], &buf);
+
+      // 파일, 폴더에 따라서 queue를 나눠서 담음
+      if (S_ISDIR(buf.st_mode))
+      {
+        enqueue(&folder_queue, strdup(argv[i]));
+      }
+      else
+      {
+        enqueue(&file_queue, strdup(argv[i]));
+      }
     }
 
     // 인자가 여러 개 있는 경우, 정렬해서 탐색
-    sort_queue(&q);
-    // TODO: -R 옵션이 아닌 경우, 각 node 모아서 따로 탐색 돌리는 로직 추가
-    while (!is_empty(&q))
+    sort_queue(&file_queue);
+    sort_queue(&folder_queue);
+
+    // 옵션에 맞게 file queue 먼저 출력
+    print_file(&file_queue, &opts);
+
+    if (!is_empty(&folder_queue))
     {
-      node n = dequeue(&q);
+      printf("\n\n");
+    }
+
+    while (!is_empty(&folder_queue))
+    {
+      node n = dequeue(&folder_queue);
 
       traverse_dir(n.dir_name, "", &opts);
     }
+  }
+  if ((opts & l_OPT) == 0)
+  {
+    printf("\n");
   }
 
   return 0;
