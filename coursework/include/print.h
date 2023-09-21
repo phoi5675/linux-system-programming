@@ -17,6 +17,7 @@ typedef struct l_prettier
 
 void print_file(DIR *, char *, const char *, const int *);
 void set_l_prettier(queue *, l_prettier *);
+unsigned long get_blk_size(queue *);
 
 void print_inode(unsigned long, int, int);
 void print_perm(struct stat *, int);

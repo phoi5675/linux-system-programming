@@ -13,9 +13,6 @@
 #include <queue.h>
 #include <common.h>
 
-// TODO: inode가 모두 같은 값으로 나오는 문제 존재
-// TODO: 파일 실행 권한이 모두 같게 나오는 문제 재 존재
-// TODO: -a 옵션 주는 경우 구현(. 파일 숨기기)
 void print_file(DIR *dp, char *d_name, const char *parent_dir, const int *opts)
 {
   queue q;
@@ -51,39 +48,39 @@ void print_file(DIR *dp, char *d_name, const char *parent_dir, const int *opts)
 
     // 1. l opts 인 경우, alignment 하는 옵션
     set_l_prettier(&q, lp);
+
+    if (*opts & l_OPT)
+    {
+      printf("total %lu\n", get_blk_size(&q));
+    }
     while (!is_empty(&q))
     {
       node n = dequeue(&q);
 
+      // -a 옵션이 아닌 경우, . 파일 숨김 처리
+      if (((*opts & a_OPT) == 0) && (strncmp(n.dir_name, ".", 1) == 0))
+      {
+        continue;
+      }
+
+      // 1. l opts의 형식에 맞게 출력
       print_inode(n.buf.st_ino, lp->st_ino, *opts);
       print_perm(&n.buf, *opts);
       print_nlink(&n.buf, lp->nlink, *opts);
       print_pwd(&n.buf, lp->pw_name, *opts);
       print_grp(&n.buf, lp->gr_name, *opts);
       print_size(&n.buf, lp, *opts);
+      print_time(&n.buf, lp, *opts);
       print_name(&n, *opts);
     }
   }
-  // 디렉토리가 아닌 단순 파일인 경우
-  // TODO: -R 옵션 주지 않는 경우에 해당 부분 사용하지 않는 것 확인되면 제거
-  // else
-  // {
-  //   if (*opts & l_OPT)
-  //   {
-  //     printf("%s\t", d_name);
-  //   }
-  //   else
-  //   {
-  //     printf("%s\t", d_name);
-  //   }
-  // }
 }
 
 void set_l_prettier(queue *q, l_prettier *lp)
 {
-  node *n;
-  struct passwd *pwd;
   struct group *grp;
+  struct passwd *pwd;
+  node *n = q->front;
 
   if (is_empty(q))
   {
@@ -114,11 +111,30 @@ void set_l_prettier(queue *q, l_prettier *lp)
     lp->st_ino = MAX(lp->st_ino, get_int_digit(n->buf.st_ino));
     lp->nlink = MAX(lp->nlink, get_int_digit(n->buf.st_nlink));
     lp->pw_name = MAX(lp->pw_name, strlen(pwd->pw_name));
-    lp->gr_name = MAX(lp->pw_name, strlen(grp->gr_name));
+    lp->gr_name = MAX(lp->gr_name, strlen(grp->gr_name));
     lp->st_major = MAX(lp->st_major, st_major);
     lp->st_minor = MAX(lp->st_minor, st_minor);
     lp->st_size = MAX(lp->st_size, st_size);
+
+    n = n->next;
   }
+}
+
+unsigned long get_blk_size(queue *q)
+{
+  node *n = q->front;
+  unsigned long ret = 0;
+  if (is_empty(q))
+  {
+    return 0;
+  }
+
+  while (n != NULL)
+  {
+    ret += n->buf.st_blocks;
+    n = n->next;
+  }
+  return ret >> 1;
 }
 
 void print_inode(unsigned long inode, int width, int opts)
@@ -128,7 +144,7 @@ void print_inode(unsigned long inode, int width, int opts)
     return;
   }
 
-  printf("%-*lu ", width, inode);
+  printf("%*lu ", width, inode);
 }
 
 void print_perm(struct stat *buf, int opts)
@@ -182,7 +198,7 @@ void print_nlink(struct stat *buf, int width, int opts)
   {
     return;
   }
-  printf("%-*lu ", width, buf->st_nlink);
+  printf("%*lu ", width, buf->st_nlink);
 }
 
 void print_pwd(struct stat *buf, int width, int opts)
@@ -204,7 +220,7 @@ void print_grp(struct stat *buf, int width, int opts)
   }
   struct group *grp = getgrgid(buf->st_gid);
 
-  printf("%*s ", width, grp->gr_name);
+  printf("%-*s ", width, grp->gr_name);
 }
 
 void print_size(struct stat *buf, l_prettier *lp, int opts)
@@ -215,19 +231,19 @@ void print_size(struct stat *buf, l_prettier *lp, int opts)
   }
   if (S_ISCHR(buf->st_mode) || S_ISBLK(buf->st_mode))
   {
-    printf("%-*lu, %-*lu ",
+    printf("%*lu, %*lu ",
            lp->st_major, (buf->st_rdev >> 8) & 0xff,
            lp->st_minor, (buf->st_rdev & 0xff));
   }
   else
   {
-    printf("%-*lu ", lp->st_size, buf->st_size);
+    printf("%*lu ", lp->st_size + 1, buf->st_size);
   }
 }
 
 void print_time(struct stat *buf, l_prettier *lp, int opts)
 {
-  if (opts & l_OPT == 0)
+  if ((opts & l_OPT) == 0)
   {
     return;
   }

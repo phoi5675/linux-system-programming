@@ -6,6 +6,7 @@
 #include <dir.h>
 #include <queue.h>
 
+// TODO: 루트(/) 디렉토리 인식하지 못 하는 문제 수정
 int main(int argc, char **argv)
 {
   int opts = get_opt_flags(argc, argv);
@@ -42,7 +43,6 @@ int main(int argc, char **argv)
       traverse_dir(n.dir_name, "", &opts);
     }
   }
-  printf("\n\n%d\n\n", opts);
 
   return 0;
 }

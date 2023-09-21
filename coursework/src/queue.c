@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include <queue.h>
 
 void init_queue(queue *q)
@@ -18,6 +22,7 @@ void enqueue(queue *q, char *d_name)
 {
   node *new_node = (node *)malloc(sizeof(node));
   strcpy(new_node->dir_name, d_name);
+  lstat(new_node->dir_name, &new_node->buf);
   new_node->next = NULL;
 
   if (is_empty(q))
@@ -79,6 +84,7 @@ void copy_node(node *dst, node *src)
   }
 
   strcpy(dst->dir_name, src->dir_name);
+  memcpy(&dst->buf, &src->buf, sizeof(struct stat));
   dst->next = src->next;
 }
 
