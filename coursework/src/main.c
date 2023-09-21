@@ -14,6 +14,7 @@ int main(int argc, char **argv)
 {
   struct stat buf;
   int opts = get_opt_flags(argc, argv);
+  int is_file_queue_empty = 0;
   queue file_queue, folder_queue;
 
   init_queue(&file_queue);
@@ -51,9 +52,12 @@ int main(int argc, char **argv)
     sort_queue(&folder_queue);
 
     // 옵션에 맞게 file queue 먼저 출력
-    print_file(&file_queue, &opts);
+    if (!(is_file_queue_empty = is_empty(&file_queue)))
+    {
+      print_file(&file_queue, &opts);
+    }
 
-    if (!is_empty(&folder_queue))
+    if (!is_file_queue_empty && !is_empty(&folder_queue))
     {
       printf("\n\n");
     }
