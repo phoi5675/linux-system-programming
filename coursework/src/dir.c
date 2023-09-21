@@ -20,11 +20,8 @@ void traverse_dir(char *dir_name, const char *parent_dir, const int *opts)
 
   // 순회 하는 부분
   lstat(dir_name, &buf);
-  if (S_ISDIR(buf.st_mode))
-  {
-    chdir(dir_name);
-  }
 
+  chdir(dir_name);
   dp = opendir(".");
 
   q = get_folder_elem_queue(dp, dir_name);
@@ -79,15 +76,12 @@ queue *get_folder_elem_queue(DIR *dp, char *d_name)
   init_queue(q);
   lstat(d_name, &buf);
 
-  if (S_ISDIR(buf.st_mode))
+  while (p = readdir(dp))
   {
-    while (p = readdir(dp))
-    {
-      node n;
-      strcpy(n.dir_name, p->d_name);
-      lstat(n.dir_name, &n.buf);
-      enqueue_node(q, &n);
-    }
+    node n;
+    strcpy(n.dir_name, p->d_name);
+    lstat(n.dir_name, &n.buf);
+    enqueue_node(q, &n);
   }
 
   return q;

@@ -69,10 +69,6 @@ int main(int argc, char **argv)
       traverse_dir(n.dir_name, "", &opts);
     }
   }
-  if ((opts & l_OPT) == 0)
-  {
-    printf("\n");
-  }
 
   return 0;
 }

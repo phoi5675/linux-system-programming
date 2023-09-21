@@ -63,6 +63,8 @@ void print_file(queue *q, const int *opts)
     print_name(&n, *opts);
   }
 
+  printf("\n");
+
   free(lp);
 }
 
@@ -210,7 +212,7 @@ void print_grp(struct stat *buf, int width, int opts)
   }
   struct group *grp = getgrgid(buf->st_gid);
 
-  printf("%-*s ", width, grp->gr_name);
+  printf("%-*s", width, grp->gr_name);
 }
 
 void print_size(struct stat *buf, l_prettier *lp, int opts)
