@@ -1,5 +1,11 @@
 # [MOOC][L2] Linux System Programming 과제
 
+## How to run
+
+```bash
+cd src && make
+```
+
 ## 과제 구현 항목
 
 1. -R 옵션은 재귀 호출을 이용하여 구현한다.
